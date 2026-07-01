@@ -9,17 +9,21 @@ import { getFirestore } from "firebase/firestore";
 // they identify your project but do NOT grant access. Security is enforced
 // entirely by Firestore Security Rules (see firestore.rules).
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY            as string,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN        as string,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID         as string,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET     as string,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID             as string,
-  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID     as string,
+  apiKey:            (import.meta.env.VITE_FIREBASE_API_KEY            as string) || 'YOUR_API_KEY',
+  authDomain:        (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN        as string) || 'mock.firebaseapp.com',
+  projectId:         (import.meta.env.VITE_FIREBASE_PROJECT_ID         as string) || 'mock-project-id',
+  storageBucket:     (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET     as string) || 'mock.appspot.com',
+  messagingSenderId: (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string) || '123456789',
+  appId:             (import.meta.env.VITE_FIREBASE_APP_ID             as string) || '1:123456789:web:mockapp',
+  measurementId:     (import.meta.env.VITE_FIREBASE_MEASUREMENT_ID     as string) || 'G-MOCK',
 };
 
+const isMock = firebaseConfig.apiKey === 'YOUR_API_KEY' || firebaseConfig.apiKey.startsWith('your_');
+
 const app = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(app);
+
+// Only initialize analytics if not in offline mock mode
+export const analytics = (!isMock && typeof window !== 'undefined') ? getAnalytics(app) : null;
 
 export const auth           = getAuth(app);
 export const db             = getFirestore(app);

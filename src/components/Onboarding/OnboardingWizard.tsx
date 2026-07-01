@@ -30,17 +30,29 @@ export const OnboardingWizard: React.FC = () => {
   const [city, setCity]       = useState('');
   const [college, setCollege] = useState('');
 
+  // Search & custom inputs for searchable college selection
+  const [collegeSearch, setCollegeSearch] = useState('');
+  const [showCollegeDropdown, setShowCollegeDropdown] = useState(false);
+  const [isOther, setIsOther] = useState(false);
+  const [customCollege, setCustomCollege] = useState('');
+
   const states   = getStates(country);
   const cities   = state  ? getCities(country, state)   : [];
   const colleges = city   ? getColleges(country, state, city) : [];
 
+  // Filter colleges based on search query
+  const filteredColleges = colleges.filter(c =>
+    c.toLowerCase().includes(collegeSearch.toLowerCase())
+  );
+
   const canStep1 = name.trim().length >= 2 && age;
-  const canStep2 = country && state && city && college;
+  const finalCollegeValue = isOther ? customCollege.trim() : college;
+  const canStep2 = country && state && city && finalCollegeValue.length >= 2;
 
   const handleFinish = async () => {
     if (!canStep2) return;
     setLoading(true);
-    const res = await completeOnboarding({ name: name.trim(), role, age, country, state, city, college });
+    const res = await completeOnboarding({ name: name.trim(), role, age, country, state, city, college: finalCollegeValue });
     setLoading(false);
     if (res.success) showToast(`Welcome to SurgeSkill, ${name.split(' ')[0]}! 🎉`);
   };
@@ -179,7 +191,7 @@ export const OnboardingWizard: React.FC = () => {
                 {/* Country */}
                 <div>
                   <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Country *</label>
-                  <select style={sel} value={country} onChange={e => { setCountry(e.target.value); setState(''); setCity(''); setCollege(''); }}>
+                  <select style={sel} value={country} onChange={e => { setCountry(e.target.value); setState(''); setCity(''); setCollege(''); setCollegeSearch(''); setIsOther(false); setCustomCollege(''); }}>
                     {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -188,7 +200,7 @@ export const OnboardingWizard: React.FC = () => {
                 {states.length > 0 && (
                   <div>
                     <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>State / Province *</label>
-                    <select style={sel} value={state} onChange={e => { setState(e.target.value); setCity(''); setCollege(''); }}>
+                    <select style={sel} value={state} onChange={e => { setState(e.target.value); setCity(''); setCollege(''); setCollegeSearch(''); setIsOther(false); setCustomCollege(''); }}>
                       <option value="">Select state…</option>
                       {states.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -199,7 +211,7 @@ export const OnboardingWizard: React.FC = () => {
                 {state && cities.length > 0 && (
                   <div>
                     <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>City *</label>
-                    <select style={sel} value={city} onChange={e => { setCity(e.target.value); setCollege(''); }}>
+                    <select style={sel} value={city} onChange={e => { setCity(e.target.value); setCollege(''); setCollegeSearch(''); setIsOther(false); setCustomCollege(''); }}>
                       <option value="">Select city…</option>
                       {cities.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -207,19 +219,126 @@ export const OnboardingWizard: React.FC = () => {
                 )}
 
                 {/* College */}
-                {city && colleges.length > 0 && (
-                  <div>
+                {city && (
+                  <div style={{ position: 'relative' }}>
                     <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                       {role === 'mentor' ? 'Organization / University *' : 'College / University *'}
                     </label>
-                    <select style={sel} value={college} onChange={e => setCollege(e.target.value)}>
-                      <option value="">Select institution…</option>
-                      {colleges.map(c => <option key={c} value={c}>{c}</option>)}
-                      <option value="Other">Other (not listed)</option>
-                    </select>
-                    {college === 'Other' && (
-                      <input style={{ ...inp, marginTop: 8 }} placeholder="Enter your institution name"
-                        onChange={e => setCollege(e.target.value === '' ? 'Other' : e.target.value)} />
+                    
+                    {/* Search Input Box */}
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        style={inp}
+                        type="text"
+                        placeholder="Type to search college..."
+                        value={collegeSearch}
+                        onFocus={() => setShowCollegeDropdown(true)}
+                        onChange={e => {
+                          setCollegeSearch(e.target.value);
+                          setShowCollegeDropdown(true);
+                          if (e.target.value === '') {
+                            setCollege('');
+                            setIsOther(false);
+                          }
+                        }}
+                      />
+                      {collegeSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCollegeSearch('');
+                            setCollege('');
+                            setIsOther(false);
+                            setCustomCollege('');
+                            setShowCollegeDropdown(true);
+                          }}
+                          style={{
+                            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)'
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Dropdown Options List */}
+                    {showCollegeDropdown && (
+                      <>
+                        {/* Overlay backdrop to close dropdown on click outside */}
+                        <div
+                          style={{ position: 'fixed', inset: 0, zIndex: 998 }}
+                          onClick={() => setShowCollegeDropdown(false)}
+                        />
+                        <div style={{
+                          position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4,
+                          background: '#fff', border: '1px solid var(--border)', borderRadius: 8,
+                          boxShadow: '0 8px 30px rgba(0,0,0,0.12)', maxHeight: 200, overflowY: 'auto',
+                          zIndex: 999,
+                        }}>
+                          {filteredColleges.length > 0 ? (
+                            filteredColleges.map(c => (
+                              <div
+                                key={c}
+                                onClick={() => {
+                                  setCollege(c);
+                                  setCollegeSearch(c);
+                                  setIsOther(false);
+                                  setShowCollegeDropdown(false);
+                                }}
+                                style={{
+                                  padding: '10px 12px', fontSize: 13.5, cursor: 'pointer',
+                                  borderBottom: '1px solid var(--bg)', color: 'var(--text-primary)',
+                                  transition: 'background 100ms'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                              >
+                                {c}
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ padding: '10px 12px', fontSize: 13, color: 'var(--text-muted)' }}>
+                              No matching colleges found.
+                            </div>
+                          )}
+                          
+                          {/* "Other (not listed)" option */}
+                          <div
+                            onClick={() => {
+                              setCollege('');
+                              setCollegeSearch('Other (not listed)');
+                              setIsOther(true);
+                              setShowCollegeDropdown(false);
+                            }}
+                            style={{
+                              padding: '10px 12px', fontSize: 13.5, cursor: 'pointer',
+                              color: '#6366f1', fontWeight: 600,
+                              background: 'rgba(99,102,241,0.04)',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.04)'}
+                          >
+                            ➕ Other (not listed)
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Custom College Input Box */}
+                    {isOther && (
+                      <div style={{ marginTop: 10 }}>
+                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                          Enter College Name *
+                        </label>
+                        <input
+                          style={inp}
+                          type="text"
+                          placeholder="Type your college name..."
+                          value={customCollege}
+                          onChange={e => setCustomCollege(e.target.value)}
+                        />
+                      </div>
                     )}
                   </div>
                 )}
